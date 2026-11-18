@@ -1,0 +1,11 @@
+.git
+.gitignore
+__pycache__
+**/__pycache__
+*.pyc
+docs/
+sphinx/
+alexa.json
+docker-compose.yml
+Dockerfile
+.dockerignore
