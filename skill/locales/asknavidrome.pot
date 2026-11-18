@@ -1,0 +1,112 @@
+# Translations template for AskNavidrome.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the AskNavidrome
+# project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: AskNavidrome VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-11-18 21:35+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: skill/app.py:227
+msgid "Ready!"
+msgstr ""
+
+#: skill/app.py:251
+msgid "This device is not supported"
+msgstr ""
+
+#: skill/app.py:284
+msgid ""
+"AskNavidrome lets you interact with media servers that offer a Subsonic "
+"compatible A.P.I."
+msgstr ""
+
+#: skill/app.py:316 skill/app.py:376 skill/app.py:466
+msgid "I couldn't find the artist {artist} in the collection."
+msgstr ""
+
+#: skill/app.py:333
+msgid "Playing music by: {artist}"
+msgstr ""
+
+#: skill/app.py:389
+msgid "I couldn't find an album called {album} by {artist} in the collection."
+msgstr ""
+
+#: skill/app.py:403
+msgid "Playing {album} by: {artist}"
+msgstr ""
+
+#: skill/app.py:419
+msgid "I couldn't find the album {album} in the collection."
+msgstr ""
+
+#: skill/app.py:433
+msgid "Playing {album}"
+msgstr ""
+
+#: skill/app.py:481
+msgid "I couldn't find a song called {song} by {artist} in the collection."
+msgstr ""
+
+#: skill/app.py:489
+msgid "Playing {song} by {artist}"
+msgstr ""
+
+#: skill/app.py:525
+msgid "I couldn't find the playlist {playlist} in the collection."
+msgstr ""
+
+#: skill/app.py:539
+msgid "Playing playlist {playlist}"
+msgstr ""
+
+#: skill/app.py:574
+msgid "I couldn't find any {genre} songs in the collection."
+msgstr ""
+
+#: skill/app.py:588
+msgid "Playing {genre} music"
+msgstr ""
+
+#: skill/app.py:620
+msgid "I couldn't find any songs in the collection."
+msgstr ""
+
+#: skill/app.py:634
+msgid "Playing random music"
+msgstr ""
+
+#: skill/app.py:666
+msgid "You don't have any favourite songs in the collection."
+msgstr ""
+
+#: skill/app.py:680
+msgid "Playing your favourite tracks."
+msgstr ""
+
+#: skill/app.py:722
+msgid "This is {title} by {artist}, from the album {album}"
+msgstr ""
+
+#: skill/app.py:991 skill/app.py:1017
+msgid "Sorry, I didn't get that. Can you please say it again!!"
+msgstr ""
+
+#. TRANSLATOR: Conjunction word that replaces the SSML reserved characters '&',
+#. '/' and '\' in media names.
+#: skill/app.py:1153
+msgid "and"
+msgstr ""
+

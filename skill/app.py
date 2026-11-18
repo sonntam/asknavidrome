@@ -1,5 +1,7 @@
 from datetime import datetime
 from flask import Flask, render_template
+from functools import lru_cache
+import gettext
 import logging
 from multiprocessing import Process
 from multiprocessing.managers import BaseManager
@@ -222,7 +224,7 @@ class LaunchRequestHandler(AbstractRequestHandler):
         logger.debug('In LaunchRequestHandler')
 
         connection.ping()
-        speech = sanitise_speech_output('Ready!')
+        speech = build_speech(handler_input, 'Ready!')
 
         handler_input.response_builder.speak(speech).ask(speech)
         return handler_input.response_builder.response
@@ -246,8 +248,8 @@ class CheckAudioInterfaceHandler(AbstractRequestHandler):
     def handle(self, handler_input: HandlerInput) -> Response:
         logger.debug('In CheckAudioInterfaceHandler')
 
-        _ = handler_input.attributes_manager.request_attributes['_']
-        handler_input.response_builder.speak('This device is not supported').set_should_end_session(True)
+        text = build_speech(handler_input, 'This device is not supported')
+        handler_input.response_builder.speak(text).set_should_end_session(True)
 
         return handler_input.response_builder.response
 
@@ -279,7 +281,7 @@ class HelpHandler(AbstractRequestHandler):
     def handle(self, handler_input: HandlerInput) -> Response:
         logger.debug('In HelpHandler')
 
-        text = sanitise_speech_output('AskNavidrome lets you interact with media servers that offer a Subsonic compatible A.P.I.')
+        text = build_speech(handler_input, 'AskNavidrome lets you interact with media servers that offer a Subsonic compatible A.P.I.')
         handler_input.response_builder.speak(text)
 
         return handler_input.response_builder.response
@@ -311,7 +313,7 @@ class NaviSonicPlayMusicByArtist(AbstractRequestHandler):
         artist_lookup = connection.search_artist(artist.value)
 
         if artist_lookup is None:
-            text = sanitise_speech_output(f"I couldn't find the artist {artist.value} in the collection.")
+            text = build_speech(handler_input, "I couldn't find the artist {artist} in the collection.", artist=artist.value)
             handler_input.response_builder.speak(text).ask(text)
 
             return handler_input.response_builder.response
@@ -328,7 +330,7 @@ class NaviSonicPlayMusicByArtist(AbstractRequestHandler):
             backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
             backgroundProcess.start()  # Start the additional thread
 
-            speech = sanitise_speech_output(f'Playing music by: {artist.value}')
+            speech = build_speech(handler_input, 'Playing music by: {artist}', artist=artist.value)
             logger.info(speech)
 
             card = {'title': 'AskNavidrome',
@@ -371,7 +373,7 @@ class NaviSonicPlayAlbumByArtist(AbstractRequestHandler):
             artist_lookup = connection.search_artist(artist.value)
 
             if artist_lookup is None:
-                text = sanitise_speech_output(f"I couldn't find the artist {artist.value} in the collection.")
+                text = build_speech(handler_input, "I couldn't find the artist {artist} in the collection.", artist=artist.value)
                 handler_input.response_builder.speak(text).ask(text)
 
                 return handler_input.response_builder.response
@@ -384,7 +386,7 @@ class NaviSonicPlayAlbumByArtist(AbstractRequestHandler):
                 result = [album_result for album_result in artist_album_lookup if album_result.get('name').lower() == album.value.lower()]
 
                 if not result:
-                    text = sanitise_speech_output(f"I couldn't find an album called {album.value} by {artist.value} in the collection.")
+                    text = build_speech(handler_input, "I couldn't find an album called {album} by {artist} in the collection.", album=album.value, artist=artist.value)
                     handler_input.response_builder.speak(text).ask(text)
 
                     return handler_input.response_builder.response
@@ -398,7 +400,7 @@ class NaviSonicPlayAlbumByArtist(AbstractRequestHandler):
                 backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
                 backgroundProcess.start()  # Start the additional thread
 
-                speech = sanitise_speech_output(f'Playing {album.value} by: {artist.value}')
+                speech = build_speech(handler_input, 'Playing {album} by: {artist}', album=album.value, artist=artist.value)
                 logger.info(speech)
                 card = {'title': 'AskNavidrome',
                         'text': speech
@@ -414,7 +416,7 @@ class NaviSonicPlayAlbumByArtist(AbstractRequestHandler):
             result = connection.search_album(album.value)
 
             if result is None:
-                text = sanitise_speech_output(f"I couldn't find the album {album.value} in the collection.")
+                text = build_speech(handler_input, "I couldn't find the album {album} in the collection.", album=album.value)
                 handler_input.response_builder.speak(text).ask(text)
 
                 return handler_input.response_builder.response
@@ -428,7 +430,7 @@ class NaviSonicPlayAlbumByArtist(AbstractRequestHandler):
                 backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
                 backgroundProcess.start()  # Start the additional thread
 
-                speech = sanitise_speech_output(f'Playing {album.value}')
+                speech = build_speech(handler_input, 'Playing {album}', album=album.value)
                 logger.info(speech)
                 card = {'title': 'AskNavidrome',
                         'text': speech
@@ -461,7 +463,7 @@ class NaviSonicPlaySongByArtist(AbstractRequestHandler):
         artist_lookup = connection.search_artist(artist.value)
 
         if artist_lookup is None:
-            text = sanitise_speech_output(f"I couldn't find the artist {artist.value} in the collection.")
+            text = build_speech(handler_input, "I couldn't find the artist {artist} in the collection.", artist=artist.value)
             handler_input.response_builder.speak(text).ask(text)
 
             return handler_input.response_builder.response
@@ -476,7 +478,7 @@ class NaviSonicPlaySongByArtist(AbstractRequestHandler):
             song_dets = [item.get('id') for item in song_list if item.get('artistId') == artist_id]
 
             if not song_dets:
-                text = sanitise_speech_output(f"I couldn't find a song called {song.value} by {artist.value} in the collection.")
+                text = build_speech(handler_input, "I couldn't find a song called {song} by {artist} in the collection.", song=song.value, artist=artist.value)
                 handler_input.response_builder.speak(text).ask(text)
 
                 return handler_input.response_builder.response
@@ -484,7 +486,7 @@ class NaviSonicPlaySongByArtist(AbstractRequestHandler):
             play_queue.clear()
             controller.enqueue_songs(connection, play_queue, song_dets)
 
-            speech = sanitise_speech_output(f'Playing {song.value} by {artist.value}')
+            speech = build_speech(handler_input, 'Playing {song} by {artist}', song=song.value, artist=artist.value)
             logger.info(speech)
             card = {'title': 'AskNavidrome',
                     'text': speech
@@ -520,7 +522,7 @@ class NaviSonicPlayPlaylist(AbstractRequestHandler):
         playlist_id = connection.search_playlist(playlist.value)
 
         if playlist_id is None:
-            text = sanitise_speech_output("I couldn't find the playlist " + str(playlist.value) + ' in the collection.')
+            text = build_speech(handler_input, "I couldn't find the playlist {playlist} in the collection.", playlist=playlist.value)
             handler_input.response_builder.speak(text).ask(text)
 
             return handler_input.response_builder.response
@@ -534,7 +536,7 @@ class NaviSonicPlayPlaylist(AbstractRequestHandler):
             backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
             backgroundProcess.start()  # Start the additional thread
 
-            speech = sanitise_speech_output('Playing playlist ' + str(playlist.value))
+            speech = build_speech(handler_input, 'Playing playlist {playlist}', playlist=playlist.value)
             logger.info(speech)
             card = {'title': 'AskNavidrome',
                     'text': speech
@@ -569,7 +571,7 @@ class NaviSonicPlayMusicByGenre(AbstractRequestHandler):
         song_id_list = connection.build_song_list_from_genre(genre.value, min_song_count)
 
         if song_id_list is None:
-            text = sanitise_speech_output(f"I couldn't find any {genre.value} songs in the collection.")
+            text = build_speech(handler_input, "I couldn't find any {genre} songs in the collection.", genre=genre.value)
             handler_input.response_builder.speak(text).ask(text)
 
             return handler_input.response_builder.response
@@ -583,7 +585,7 @@ class NaviSonicPlayMusicByGenre(AbstractRequestHandler):
             backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
             backgroundProcess.start()  # Start the additional thread
 
-            speech = sanitise_speech_output(f'Playing {genre.value} music')
+            speech = build_speech(handler_input, 'Playing {genre} music', genre=genre.value)
             logger.info(speech)
             card = {'title': 'AskNavidrome',
                     'text': speech
@@ -615,7 +617,7 @@ class NaviSonicPlayMusicRandom(AbstractRequestHandler):
         song_id_list = connection.build_random_song_list(min_song_count)
 
         if song_id_list is None:
-            text = sanitise_speech_output("I couldn't find any songs in the collection.")
+            text = build_speech(handler_input, "I couldn't find any songs in the collection.")
             handler_input.response_builder.speak(text).ask(text)
 
             return handler_input.response_builder.response
@@ -629,7 +631,7 @@ class NaviSonicPlayMusicRandom(AbstractRequestHandler):
             backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
             backgroundProcess.start()  # Start the additional thread
 
-            speech = sanitise_speech_output('Playing random music')
+            speech = build_speech(handler_input, 'Playing random music')
             logger.info(speech)
             card = {'title': 'AskNavidrome',
                     'text': speech
@@ -661,7 +663,7 @@ class NaviSonicPlayFavouriteSongs(AbstractRequestHandler):
         song_id_list = connection.build_song_list_from_favourites()
 
         if song_id_list is None:
-            text = sanitise_speech_output("You don't have any favourite songs in the collection.")
+            text = build_speech(handler_input, "You don't have any favourite songs in the collection.")
             handler_input.response_builder.speak(text).ask(text)
 
             return handler_input.response_builder.response
@@ -675,7 +677,7 @@ class NaviSonicPlayFavouriteSongs(AbstractRequestHandler):
             backgroundProcess = Process(target=queue_worker_thread, args=(connection, play_queue, song_id_list[2:]))  # Create a thread to enqueue the remaining tracks
             backgroundProcess.start()  # Start the additional thread
 
-            speech = sanitise_speech_output('Playing your favourite tracks.')
+            speech = build_speech(handler_input, 'Playing your favourite tracks.')
             logger.info(speech)
             card = {'title': 'AskNavidrome',
                     'text': speech
@@ -717,11 +719,8 @@ class NaviSonicSongDetails(AbstractRequestHandler):
 
         current_track = play_queue.get_current_track()
 
-        title = sanitise_speech_output(current_track.title)
-        artist = sanitise_speech_output(current_track.artist)
-        album = sanitise_speech_output(current_track.album)
-
-        text = f'This is {title} by {artist}, from the album {album}'
+        text = build_speech(handler_input, 'This is {title} by {artist}, from the album {album}',
+                            title=current_track.title, artist=current_track.artist, album=current_track.album)
         handler_input.response_builder.speak(text)
 
         return handler_input.response_builder.response
@@ -989,7 +988,7 @@ class SystemExceptionHandler(AbstractExceptionHandler):
         if get_request_type(handler_input) == 'IntentRequest':
             logger.error(f'Intent Name Was: {get_intent_name(handler_input)}')
 
-        speech = sanitise_speech_output("Sorry, I didn't get that. Can you please say it again!!")
+        speech = build_speech(handler_input, "Sorry, I didn't get that. Can you please say it again!!")
         handler_input.response_builder.speak(speech).ask(speech)
 
         return handler_input.response_builder.response
@@ -1015,7 +1014,7 @@ class GeneralExceptionHandler(AbstractExceptionHandler):
         if get_request_type(handler_input) == 'IntentRequest':
             logger.error(f'Intent Name Was: {get_intent_name(handler_input)}')
 
-        speech = sanitise_speech_output("Sorry, I didn't get that. Can you please say it again!!")
+        speech = build_speech(handler_input, "Sorry, I didn't get that. Can you please say it again!!")
         handler_input.response_builder.speak(speech).ask(speech)
 
         return handler_input.response_builder.response
@@ -1024,6 +1023,23 @@ class GeneralExceptionHandler(AbstractExceptionHandler):
 #
 # Request Interceptors
 #
+
+
+class LocalizationInterceptor(AbstractRequestInterceptor):
+    """Intercept all requests
+
+    Adds a gettext translation function bound to the locale of the request
+    to the request attributes so that handlers can translate user facing
+    strings via ``build_speech()``.
+    """
+
+    def process(self, handler_input: HandlerInput):
+        locale = getattr(handler_input.request_envelope.request, 'locale', None) or 'en-US'
+
+        logger.debug(f'Localising response for locale: {locale}')
+
+        translation = load_translation(locale)
+        handler_input.attributes_manager.request_attributes['_'] = translation.gettext
 
 
 class LoggingRequestInterceptor(AbstractRequestInterceptor):
@@ -1050,36 +1066,95 @@ class LoggingResponseInterceptor(AbstractResponseInterceptor):
 #
 
 
-def sanitise_speech_output(speech_string: str) -> str:
-    """Sanitise speech output inline with the SSML standard
+@lru_cache(maxsize=None)
+def load_translation(locale: str):
+    """Load the message catalog for the given locale
+
+    Falls back from e.g. ``de_DE`` to ``de`` and finally to a null
+    translation which returns the English message ids unchanged.
+
+    :param locale: A locale string such as ``de-DE``
+    :type locale: str
+    :return: A gettext translation object
+    :rtype: gettext.NullTranslations
+    """
+
+    logger.debug(f'In load_translation() - loading catalog for locale: {locale}')
+
+    languages = [locale.replace('-', '_')]
+    language = locale.split('-')[0]
+
+    if language not in languages:
+        languages.append(language)
+
+    locale_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'locales')
+
+    return gettext.translation('asknavidrome', localedir=locale_dir, languages=languages, fallback=True)
+
+
+def sanitise_speech_value(value: str, conjunction: str = 'and') -> str:
+    """Sanitise a value for interpolation into SSML speech output
 
     Speech Synthesis Markup Language (SSML) has certain ASCII characters that are
-    reserved.  This function replaces them with alternatives.
+    reserved.  This function replaces them with alternatives so that user supplied
+    values such as artist or album names can safely be used in speech output.
 
-    :param speech_string: The string to process
-    :type speech_string: str
+    :param value: The string to process
+    :type value: str
+    :param conjunction: The word used to replace '&', '/' and '\\'
+    :type conjunction: str
     :return: The processed SSML compliant string
     :rtype: str
     """
 
-    logger.debug('In sanitise_speech_output()')
+    logger.debug('In sanitise_speech_value()')
 
-    if '&' in speech_string:
-        speech_string = speech_string.replace('&', 'and')
-    if '/' in speech_string:
-        speech_string = speech_string.replace('/', 'and')
-    if '\\' in speech_string:
-        speech_string = speech_string.replace('\\', 'and')
-    if '"' in speech_string:
-        speech_string = speech_string.replace('"', '')
-    if "'" in speech_string:
-        speech_string = speech_string.replace("'", "")
-    if "<" in speech_string:
-        speech_string = speech_string.replace('<', '')
-    if ">" in speech_string:
-        speech_string = speech_string.replace('>', '')
+    if '&' in value:
+        value = value.replace('&', conjunction)
+    if '/' in value:
+        value = value.replace('/', conjunction)
+    if '\\' in value:
+        value = value.replace('\\', conjunction)
+    if '"' in value:
+        value = value.replace('"', '')
+    if "'" in value:
+        value = value.replace("'", '')
+    if '<' in value:
+        value = value.replace('<', '')
+    if '>' in value:
+        value = value.replace('>', '')
 
-    return speech_string
+    return value
+
+
+def build_speech(handler_input: HandlerInput, message: str, **values) -> str:
+    """Build SSML safe speech output for a translatable message
+
+    The message is looked up in the message catalog for the locale of the
+    current request and interpolated with the given named values.  Values are
+    sanitised for SSML before interpolation, the translated template itself is
+    left untouched so that language specific punctuation survives.  Translators
+    may reorder or omit the named placeholders as their language requires.
+
+    :param handler_input: The handler input for the current request
+    :type handler_input: HandlerInput
+    :param message: The English message id, a template with named placeholders
+    :type message: str
+    :param values: Named values substituted into the message template
+    :return: The translated and sanitised speech string
+    :rtype: str
+    """
+
+    logger.debug('In build_speech()')
+
+    _ = handler_input.attributes_manager.request_attributes['_']
+
+    # TRANSLATOR: Conjunction word that replaces the SSML reserved characters '&', '/' and '\' in media names.
+    conjunction = _('and')
+
+    safe_values = {name: sanitise_speech_value(str(value), conjunction) for name, value in values.items()}
+
+    return _(message).format(**safe_values)
 
 
 def queue_worker_thread(connection: object, play_queue: object, song_id_list: list) -> None:
@@ -1134,6 +1209,9 @@ sb.add_request_handler(PlaybackFailedEventHandler())
 # Register Exception Handlers
 sb.add_exception_handler(SystemExceptionHandler())
 sb.add_exception_handler(GeneralExceptionHandler())
+
+# Register Localisation Interceptor (translate user facing strings per request locale)
+sb.add_global_request_interceptor(LocalizationInterceptor())
 
 if navidrome_log_level >= 2:
     # Register Interceptors (log all requests)

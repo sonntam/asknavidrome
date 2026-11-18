@@ -4,6 +4,7 @@ flask-ask-sdk
 py-sonic
 
 # Dev
+babel
 sphinx
 autodocsumm
 rinohtype
